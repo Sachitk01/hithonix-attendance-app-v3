@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "pg": "^8.16.3"
+  },
+  "name": "hithonix-v2",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "node backend/tests/run_tests.js",
+    "start:app": "node -r dotenv/config backend/src/app.ts",
+    "start:worker": "node -r dotenv/config backend/src/services/keka/kekaSync.worker.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
