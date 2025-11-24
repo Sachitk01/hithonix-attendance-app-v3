@@ -3,6 +3,8 @@ import { insertAttendanceEvent } from '../attendance/attendance.service';
 import { enqueueKekaSync } from '../../queues/enqueue';
 import { validateShiftPlan } from '../ai/gatekeeper';
 import { renderHomeTab } from './home_tab';
+import { renderManagerHomeByManagerId } from './manager_home';
+import { renderEmployeeTimelineModal } from './timeline';
 
 // These handler functions are meant to be registered with a Slack Bolt `app` instance.
 export function registerHandlers(app: any) {
