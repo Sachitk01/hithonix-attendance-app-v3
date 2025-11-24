@@ -1,7 +1,22 @@
 import { getAppPool } from '../../db/pool';
+import { renderManagerHomeByManagerId } from './manager_home';
 
 export async function renderHomeTab(slackUserId: string) {
   const pool = getAppPool();
+  // Resolve employee row by slack id
+  const empRes = await pool.query(`SELECT id, full_name FROM employees WHERE slack_user_id = $1 LIMIT 1`, [slackUserId]);
+  if (empRes.rows.length === 0) {
+    return { type: 'home', blocks: [{ type: 'section', text: { type: 'mrkdwn', text: 'No employee record found. Please contact HR to link your Slack account.' } }] };
+  }
+
+  const employee = empRes.rows[0];
+
+  // If this employee is a manager (has reports), render Manager Home
+  const mgrCheck = await pool.query(`SELECT 1 FROM employee_hierarchy_v WHERE manager_id = $1 LIMIT 1`, [employee.id]);
+  if (mgrCheck.rows.length) {
+    return renderManagerHomeByManagerId(employee.id);
+  }
+
   const q = `SELECT
     e.id AS employee_id,
     e.full_name,
@@ -19,9 +34,6 @@ export async function renderHomeTab(slackUserId: string) {
 
   const res = await pool.query(q, [slackUserId]);
   const row = res.rows[0];
-  if (!row) {
-    return { type: 'home', blocks: [{ type: 'section', text: { type: 'mrkdwn', text: 'No employee record found. Please contact HR to link your Slack account.' } }] };
-  }
 
   // Fetch last punch and timeline for quick preview
   const lastQ = `SELECT event_type, event_timestamp_utc FROM attendance_events WHERE employee_id = $1 AND business_date_ist = (now() AT TIME ZONE 'Asia/Kolkata')::date ORDER BY event_timestamp_utc DESC LIMIT 1`;

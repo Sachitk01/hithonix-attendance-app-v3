@@ -152,4 +152,19 @@ export function registerHandlers(app: any) {
       else await client.chat.postMessage({ channel: user, text: `End break failed: ${msg}` });
     }
   });
+
+  // Manager: open timeline for an employee
+  app.action('open_timeline', async ({ ack, body, client, logger }: any) => {
+    await ack();
+    try {
+      const action = body.actions && body.actions[0];
+      const employeeId = action && (action.value || action.selected_option && action.selected_option.value);
+      if (!employeeId) return;
+      // business date in IST YYYY-MM-DD
+      const nowIst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const date = nowIst.toISOString().slice(0,10);
+      const modal = await renderEmployeeTimelineModal(employeeId, date);
+      if (body.trigger_id) await client.views.open({ trigger_id: body.trigger_id, view: modal });
+    } catch (err) { logger.error('open_timeline error', err); }
+  });
 }

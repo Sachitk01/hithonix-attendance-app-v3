@@ -33,6 +33,8 @@ export async function renderManagerHomeByManagerId(managerId: string) {
     const color = r.has_sync_errors ? ':red_circle:' : (status === 'ON_SHIFT' ? ':large_green_circle:' : ':large_yellow_circle:');
     const lastPunch = r.last_event_timestamp_utc ? new Date(r.last_event_timestamp_utc).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—';
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `${color} *${r.full_name}* — ${status}\n${lastPunch}` } });
+    // Add a button to open the timeline for this employee
+    blocks.push({ type: 'actions', elements: [ { type: 'button', text: { type: 'plain_text', text: 'View Timeline' }, action_id: 'open_timeline', value: r.employee_id } ] });
   }
 
   return { type: 'home', blocks };
