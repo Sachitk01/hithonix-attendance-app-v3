@@ -63,4 +63,91 @@ export function registerHandlers(app: any) {
       await client.chat.postMessage({ channel: user, text: `Clock-in failed: ${msg}` });
     }
   });
+
+  // Clock Out button pressed
+  app.action('clock_out', async ({ ack, body, client, logger }: any) => {
+    await ack();
+    const user = body.user.id;
+    try {
+      const employee = await app.context.findEmployeeBySlackId(user);
+      if (!employee) {
+        const channel = body.channel?.id;
+        if (channel) await client.chat.postEphemeral({ channel, user, text: 'Employee record not found. Please contact HR.' });
+        else await client.chat.postMessage({ channel: user, text: 'Employee record not found. Please contact HR.' });
+        return;
+      }
+
+      const ev = await insertAttendanceEvent({ employee_id: employee.id, event_type: 'CLOCK_OUT', created_by_slack_id: user });
+      await enqueueKekaSync(ev.id);
+
+      try { const home = await renderHomeTab(user); await client.views.publish({ user_id: user, view: home }); } catch (e) { /* ignore */ }
+
+      const channel = body.channel?.id;
+      if (channel) await client.chat.postEphemeral({ channel, user, text: 'Clocked out successfully.' });
+      else await client.chat.postMessage({ channel: user, text: 'Clocked out successfully.' });
+    } catch (err:any) {
+      const msg = err.message || 'Failed to clock out.';
+      const channel = body.channel?.id;
+      if (channel) await client.chat.postEphemeral({ channel, user, text: `Clock-out failed: ${msg}` });
+      else await client.chat.postMessage({ channel: user, text: `Clock-out failed: ${msg}` });
+    }
+  });
+
+  // Break Start button pressed
+  app.action('break_start', async ({ ack, body, client, logger }: any) => {
+    await ack();
+    const user = body.user.id;
+    try {
+      const employee = await app.context.findEmployeeBySlackId(user);
+      if (!employee) {
+        const channel = body.channel?.id;
+        if (channel) await client.chat.postEphemeral({ channel, user, text: 'Employee record not found. Please contact HR.' });
+        else await client.chat.postMessage({ channel: user, text: 'Employee record not found. Please contact HR.' });
+        return;
+      }
+
+      const ev = await insertAttendanceEvent({ employee_id: employee.id, event_type: 'BREAK_START', created_by_slack_id: user });
+      await enqueueKekaSync(ev.id);
+
+      try { const home = await renderHomeTab(user); await client.views.publish({ user_id: user, view: home }); } catch (e) { /* ignore */ }
+
+      const channel = body.channel?.id;
+      if (channel) await client.chat.postEphemeral({ channel, user, text: 'Break started.' });
+      else await client.chat.postMessage({ channel: user, text: 'Break started.' });
+    } catch (err:any) {
+      const msg = err.message || 'Failed to start break.';
+      const channel = body.channel?.id;
+      if (channel) await client.chat.postEphemeral({ channel, user, text: `Start break failed: ${msg}` });
+      else await client.chat.postMessage({ channel: user, text: `Start break failed: ${msg}` });
+    }
+  });
+
+  // Break End button pressed
+  app.action('break_end', async ({ ack, body, client, logger }: any) => {
+    await ack();
+    const user = body.user.id;
+    try {
+      const employee = await app.context.findEmployeeBySlackId(user);
+      if (!employee) {
+        const channel = body.channel?.id;
+        if (channel) await client.chat.postEphemeral({ channel, user, text: 'Employee record not found. Please contact HR.' });
+        else await client.chat.postMessage({ channel: user, text: 'Employee record not found. Please contact HR.' });
+        return;
+      }
+
+      const ev = await insertAttendanceEvent({ employee_id: employee.id, event_type: 'BREAK_END', created_by_slack_id: user });
+      await enqueueKekaSync(ev.id);
+
+      try { const home = await renderHomeTab(user); await client.views.publish({ user_id: user, view: home }); } catch (e) { /* ignore */ }
+
+      const channel = body.channel?.id;
+      if (channel) await client.chat.postEphemeral({ channel, user, text: 'Break ended.' });
+      else await client.chat.postMessage({ channel: user, text: 'Break ended.' });
+    } catch (err:any) {
+      const msg = err.message || 'Failed to end break.';
+      const channel = body.channel?.id;
+      if (channel) await client.chat.postEphemeral({ channel, user, text: `End break failed: ${msg}` });
+      else await client.chat.postMessage({ channel: user, text: `End break failed: ${msg}` });
+    }
+  });
 }

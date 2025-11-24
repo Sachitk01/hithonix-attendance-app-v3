@@ -24,6 +24,7 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
       if (empRes.rows.length === 0) {
         await client.query(`UPDATE attendance_events SET sync_status = 'FAILED', keka_response_body = $2 WHERE id = $1`, [ev.id, { error: 'employee_not_found' }]);
         await client.query('COMMIT');
+        try { const { enqueueHomeRefresh } = require('./enqueue'); await enqueueHomeRefresh(ev.employee_id); } catch (e) { /* non-fatal */ }
         return;
       }
       const employee = empRes.rows[0];
@@ -31,6 +32,7 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
       if (!employeeAttendanceNumber) {
         await client.query(`UPDATE attendance_events SET sync_status = 'FAILED', keka_response_body = $2 WHERE id = $1`, [ev.id, { error: 'missing_keka_attendance_number' }]);
         await client.query('COMMIT');
+        try { const { enqueueHomeRefresh } = require('./enqueue'); await enqueueHomeRefresh(ev.employee_id); } catch (e) { /* non-fatal */ }
         return;
       }
 
@@ -41,12 +43,15 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
       } catch (err: any) {
         await client.query(`UPDATE attendance_events SET sync_status = 'FAILED', keka_request_body = $2, keka_response_body = $3 WHERE id = $1`, [ev.id, kekaPayload, { error: err.message || String(err) }]);
         await client.query('COMMIT');
+        // let the worker surface the failure (so retries can happen); the worker 'failed' handler will enqueue a home refresh
         throw err;
       }
 
       await client.query(`UPDATE attendance_events SET sync_status = 'SUCCESS', keka_request_body = $2, keka_response_body = $3 WHERE id = $1`, [ev.id, kekaPayload, kekaResp]);
       await client.query('COMMIT');
-      return;
+        // After successful sync, enqueue a home refresh so Slack UI reflects new sync status
+        try { const { enqueueHomeRefresh } = require('./enqueue'); await enqueueHomeRefresh(ev.employee_id); } catch (e) { /* non-fatal */ }
+        return;
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -57,6 +62,20 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
 
   worker.on('failed', (job: Job | undefined, err: Error) => {
     console.error('KekaSync job failed', job?.id, err);
+    // On terminal job failures (exceptions), enqueue a home-refresh so Slack Home reflects the failed sync.
+    (async () => {
+      try {
+        if (!job?.data?.attendanceEventId) return;
+        const client = await pool.connect();
+        try {
+          const r = await client.query('SELECT employee_id FROM attendance_events WHERE id = $1', [job.data.attendanceEventId]);
+          if (r.rows.length) {
+            const { enqueueHomeRefresh } = require('./enqueue');
+            await enqueueHomeRefresh(r.rows[0].employee_id);
+          }
+        } finally { client.release(); }
+      } catch (e) { /* non-fatal */ }
+    })();
   });
 
   return worker;

@@ -1,4 +1,5 @@
 import { getAppPool } from '../../db/pool';
+import { enqueueHomeRefresh } from '../../queues/enqueue';
 
 const pool = getAppPool();
 
@@ -21,6 +22,8 @@ export async function insertAttendanceEvent(params: { employee_id: string; event
     const q = `INSERT INTO attendance_events (employee_id, event_type, event_timestamp_utc, payload, created_by_slack_id) VALUES ($1, $2, now(), $3, $4) RETURNING id`;
     const res = await client.query(q, [employee_id, event_type, payload, created_by_slack_id]);
     await client.query('COMMIT');
+    // Enqueue home refresh for the employee to update Slack Home UI
+    try { await enqueueHomeRefresh(employee_id); } catch (e) { /* non-fatal */ }
     return res.rows[0];
   } catch (err) {
     await client.query('ROLLBACK');
