@@ -1,6 +1,7 @@
 const { spawnSync } = require('child_process');
 const tests = [
-  'backend/tests/attendance_error_mapping.test.js'
+  'backend/tests/attendance_error_mapping.test.js',
+  'backend/tests/gatekeeper.test.js'
 ];
 
 for (const t of tests) {
