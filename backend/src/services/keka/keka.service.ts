@@ -5,11 +5,21 @@ export type KekaSearchResult = any;
 
 export class KekaService {
   private http: AxiosInstance;
+  private attendanceHttp: AxiosInstance;
   private pool: Pool;
   constructor(pool: Pool, opts: { baseUrl?: string; apiKey: string; tenantAlias?: string; clientId?: string; clientSecret?: string; }) {
     this.pool = pool;
     this.http = axios.create({
       baseURL: opts.baseUrl ?? (process.env.KEKA_ENV_DOMAIN ? `https://${process.env.KEKA_COMPANY_ALIAS}.${process.env.KEKA_ENV_DOMAIN}` : 'https://keka.com'),
+      timeout: 30_000,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': opts.apiKey ?? process.env.KEKA_API_KEY
+      }
+    });
+    // Separate axios instance for Keka attendance ingestion API
+    this.attendanceHttp = axios.create({
+      baseURL: process.env.KEKA_ATTENDANCE_BASE_URL || 'https://cin03.a.keka.com',
       timeout: 30_000,
       headers: {
         'Content-Type': 'application/json',
@@ -26,11 +36,21 @@ export class KekaService {
     return res.data as KekaSearchResult;
   }
 
-  // Push attendance ingestion to Keka
-  async pushAttendance(employeeAttendanceNumber: string, payload: Record<string, any>) {
+  // Push attendance ingestion to Keka (attendance log API)
+  // Expects payload: { deviceId, employeeAttendanceNumber, timestamp, status }
+  // where status: 0 = IN, 1 = OUT, 2 = BREAK_START, 3 = BREAK_END (or your defined codes)
+  async pushAttendance(payload: { deviceId: string; employeeAttendanceNumber: string; timestamp: string; status: number }) {
     const url = `/v1/logs`;
-    const body = { EmployeeAttendanceNumber: employeeAttendanceNumber, ...payload };
-    const res = await this.http.post(url, body);
+    // Keka ingestion API expects an array of log objects
+    const body = [
+      {
+        DeviceIdentifier: payload.deviceId,
+        EmployeeAttendanceNumber: payload.employeeAttendanceNumber,
+        Timestamp: payload.timestamp, // "YYYY-MM-DDTHH:MM:SS" format, no timezone offset
+        Status: payload.status,
+      },
+    ];
+    const res = await this.attendanceHttp.post(url, body);
     return res.data;
   }
 

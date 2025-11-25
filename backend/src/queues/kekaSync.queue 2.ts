@@ -36,34 +36,10 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
         return;
       }
 
-      // Map event_type to Keka status code: CLOCK_IN=0, CLOCK_OUT=1, BREAK_START=2, BREAK_END=3
-      const statusMap: Record<string, number> = {
-        'CLOCK_IN': 0,
-        'CLOCK_OUT': 1,
-        'BREAK_START': 2,
-        'BREAK_END': 3,
-      };
-      const statusCode = statusMap[ev.event_type];
-      if (statusCode === undefined) {
-        await client.query(`UPDATE attendance_events SET sync_status = 'FAILED', keka_response_body = $2 WHERE id = $1`, [ev.id, { error: 'unknown_event_type' }]);
-        await client.query('COMMIT');
-        try { const { enqueueHomeRefresh } = require('./enqueue'); await enqueueHomeRefresh(ev.employee_id); } catch (e) { /* non-fatal */ }
-        return;
-      }
-
-      // Format timestamp as IST without offset: "YYYY-MM-DDTHH:MM:SS"
-      const isoTs = new Date(ev.event_timestamp_utc).toISOString(); // "2025-11-25T12:34:56.789Z"
-      const timestampIstNoOffset = isoTs.split('.')[0]; // "2025-11-25T12:34:56"
-
-      const kekaPayload = {
-        deviceId: process.env.KEKA_DEVICE_ID!,
-        employeeAttendanceNumber,
-        timestamp: timestampIstNoOffset,
-        status: statusCode,
-      };
+      const kekaPayload = { timestamp: ev.event_timestamp_utc, type: ev.event_type, metadata: ev.payload ?? {} };
       let kekaResp: any;
       try {
-        kekaResp = await kekaService.pushAttendance(kekaPayload);
+        kekaResp = await kekaService.pushAttendance(employeeAttendanceNumber, kekaPayload);
       } catch (err: any) {
         await client.query(`UPDATE attendance_events SET sync_status = 'FAILED', keka_request_body = $2, keka_response_body = $3 WHERE id = $1`, [ev.id, kekaPayload, { error: err.message || String(err) }]);
         await client.query('COMMIT');
