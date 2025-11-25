@@ -55,10 +55,11 @@ async function getAccessToken() {
   console.log('[keka] Requesting access token...');
 
   const body = new URLSearchParams();
-  body.append('grant_type', 'client_credentials');
+  body.append('grant_type', 'kekaapi');
   body.append('scope', KEKA_SCOPE);
   body.append('client_id', KEKA_CLIENT_ID);
   body.append('client_secret', KEKA_CLIENT_SECRET);
+  body.append('api_key', KEKA_API_KEY);
 
   const res = await fetch(KEKA_AUTH_URL, {
     method: 'POST',

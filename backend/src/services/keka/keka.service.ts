@@ -18,8 +18,7 @@ export class KekaService {
       timeout: 30_000,
       headers: {
         'Content-Type': 'application/json',
-        // For HRIS reads we may use the general KEKA_API_KEY, if provided
-        'X-API-Key': opts.apiKey ?? process.env.KEKA_API_KEY
+        accept: 'application/json'
       }
     });
     // Separate axios instance for Keka attendance ingestion API
@@ -46,7 +45,7 @@ export class KekaService {
     return `${KekaService.KEKA_HRIS_BASE}/employees/search`;
   }
 
-  // Obtain OAuth token from Keka (client credentials grant)
+  // Obtain OAuth token from Keka using kekaapi grant (API key-based)
   private async getAccessToken(): Promise<string> {
     const now = Date.now();
     if (this.tokenCache.token && this.tokenCache.expiresAt && this.tokenCache.expiresAt > now + 5000) {
@@ -57,16 +56,23 @@ export class KekaService {
     if (!tokenEndpoint) throw new Error('KEKA_AUTH_URL is not set');
     const clientId = process.env.KEKA_CLIENT_ID;
     const clientSecret = process.env.KEKA_CLIENT_SECRET;
-    if (!clientId || !clientSecret) throw new Error('KEKA client credentials not set');
+    const apiKey = process.env.KEKA_API_KEY;
+    if (!clientId || !clientSecret || !apiKey) throw new Error('KEKA client credentials and API key not set');
 
     const body = qs.stringify({
+      grant_type: 'kekaapi',
+      scope: process.env.KEKA_SCOPE || 'kekaapi',
       client_id: clientId,
       client_secret: clientSecret,
-      scope: process.env.KEKA_SCOPE || 'kekaapi',
-      grant_type: 'client_credentials'
+      api_key: apiKey
     });
 
-    const resp = await axios.post(tokenEndpoint, body, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const resp = await axios.post(tokenEndpoint, body, { 
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        accept: 'application/json'
+      } 
+    });
     const data = resp.data;
     if (!data || !data.access_token) throw new Error('failed to obtain keka access token');
     const expiresIn = data.expires_in || 3600;
@@ -77,10 +83,19 @@ export class KekaService {
 
   // Search employees by workEmail
   async searchByEmail(email: string) {
+    // Get a fresh or cached access token for HRIS access
+    const token = await this.getAccessToken();
+    
     // KEKA_HRIS_BASE already includes the /api/v1/hris segment; the employees search endpoint is /employees/search
     const url = `/employees/search`;
     const payload = { search_by: 'workEmail', search_value: email };
-    const res = await this.http.post(url, payload);
+    
+    // Make request with Bearer token in Authorization header
+    const res = await this.http.post(url, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return res.data as KekaSearchResult;
   }
 
