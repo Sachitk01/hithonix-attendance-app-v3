@@ -89,7 +89,7 @@ async function getAccessToken() {
 // ---------- Keka employees fetch (paged) ----------
 
 async function fetchEmployeesPage(accessToken, pageNumber) {
-  const url = new URL('/employees', KEKA_HRIS_BASE);
+  const url = new URL('employees', KEKA_HRIS_BASE);
 
   url.searchParams.set('inProbation', 'false');
   url.searchParams.set('inNoticePeriod', 'false');

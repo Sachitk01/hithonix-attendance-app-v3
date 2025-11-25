@@ -105,15 +105,17 @@ export class KekaService {
   async pushAttendance(payload: { deviceId: string; employeeAttendanceNumber: string; timestamp: string; status: number }) {
     // Post directly to the configured attendance base URL. The env variable is expected to include the full path
     // (e.g. https://cin03.a.keka.com/v1/logs). To avoid double-path issues we post to '' (the base).
-    // Keka ingestion API expects an array of log objects
-    const body = [
-      {
-        DeviceIdentifier: payload.deviceId,
-        EmployeeAttendanceNumber: payload.employeeAttendanceNumber,
-        Timestamp: payload.timestamp, // "YYYY-MM-DDTHH:MM:SS" format, no timezone offset
-        Status: payload.status,
-      },
-    ];
+    // Keka ingestion API expects a logEntries wrapper with an array of log objects
+    const body = {
+      logEntries: [
+        {
+          DeviceIdentifier: payload.deviceId,
+          EmployeeAttendanceNumber: payload.employeeAttendanceNumber,
+          Timestamp: payload.timestamp, // "YYYY-MM-DDTHH:MM:SS" format, no timezone offset
+          Status: payload.status,
+        },
+      ]
+    };
     const res = await this.attendanceHttp.post('', body);
     return res.data;
   }

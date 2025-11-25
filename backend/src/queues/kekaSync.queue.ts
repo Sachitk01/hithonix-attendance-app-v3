@@ -64,7 +64,7 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
       }
 
       const kekaPayload = {
-        deviceId: process.env.KEKA_DEVICE_ID!,
+        deviceId: (process.env.KEKA_DEVICE_ID || '').trim(),
         employeeAttendanceNumber,
         timestamp: timestampIstNoOffset,
         status: statusCode,
