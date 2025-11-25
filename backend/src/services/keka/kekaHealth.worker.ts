@@ -1,9 +1,9 @@
-import { Queue, Worker, Job } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import axios from 'axios';
 import type { Pool } from 'pg';
 import KekaService from './keka.service';
 
-export const kekaHealthQueue = new Queue('kekaHealthQueue', { connection: require('../../queues/connection').default });
+import { connection } from '../../queues/connection';
 
 // Use `any` for pool to avoid pg type resolution issues in this project's build environment.
 export async function runKekaHealthCheck(pool: any, kekaService: KekaService) {
@@ -36,7 +36,7 @@ export async function runKekaHealthCheck(pool: any, kekaService: KekaService) {
 }
 
 export function startKekaHealthWorker(pool: any, kekaService: KekaService) {
-  new Worker('kekaHealthQueue', async (job: Job) => {
+  new Worker('keka-health', async (job: Job) => {
     await runKekaHealthCheck(pool, kekaService);
   });
 }

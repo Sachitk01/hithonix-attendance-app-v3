@@ -1,0 +1,6 @@
+Inserted test attendance event: {
+  id: '22f3ac41-d6b6-4ce8-b3b5-364dd0530e5a',
+  created_at: 2025-11-25T07:31:06.944Z,
+  employee_id: '490b755b-6226-4fb4-a22a-12dac79cb499'
+}
+Enqueued keka sync for event 22f3ac41-d6b6-4ce8-b3b5-364dd0530e5a

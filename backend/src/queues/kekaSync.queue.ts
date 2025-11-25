@@ -1,9 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { connection } from './connection';
 import type { Pool } from 'pg';
 import KekaService from '../services/keka/keka.service';
-
-const connection = new IORedis(process.env.REDIS_URL || 'redis://127.0.0.1:6379');
 
 export const kekaSyncQueue = new Queue('keka-sync', { connection });
 
@@ -27,8 +25,10 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
         try { const { enqueueHomeRefresh } = require('./enqueue'); await enqueueHomeRefresh(ev.employee_id); } catch (e) { /* non-fatal */ }
         return;
       }
-      const employee = empRes.rows[0];
-      const employeeAttendanceNumber = employee.keka_id || (employee.raw_keka_profile && employee.raw_keka_profile.attendanceNumber);
+  const employee = empRes.rows[0];
+  // Use Slack user id as the canonical EmployeeAttendanceNumber for Keka ingestion.
+  // This is the authoritative linkage between Slack users and Keka records.
+  const employeeAttendanceNumber = employee.slack_user_id;
       if (!employeeAttendanceNumber) {
         await client.query(`UPDATE attendance_events SET sync_status = 'FAILED', keka_response_body = $2 WHERE id = $1`, [ev.id, { error: 'missing_keka_attendance_number' }]);
         await client.query('COMMIT');

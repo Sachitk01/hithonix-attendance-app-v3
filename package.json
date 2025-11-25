@@ -1,7 +1,10 @@
 {
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "axios": "^1.13.2",
+    "bullmq": "^5.64.1",
     "dotenv": "^17.2.3",
+    "ioredis": "^5.8.2",
     "pg": "^8.16.3"
   },
   "name": "hithonix-v2",
@@ -13,7 +16,7 @@
   "scripts": {
     "test": "node backend/tests/run_tests.js",
     "start:app": "node -r dotenv/config backend/src/app.ts",
-  "start:worker": "node -r dotenv/config backend/src/workers/index.ts"
+    "start:worker": "node -r dotenv/config backend/src/workers/index.ts"
   },
   "keywords": [],
   "author": "",

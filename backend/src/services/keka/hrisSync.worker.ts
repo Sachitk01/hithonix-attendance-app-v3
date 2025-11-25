@@ -1,20 +1,21 @@
 import { Queue, Worker, Job } from 'bullmq';
+import { connection } from '../../queues/connection';
 import axios from 'axios';
 import type { Pool } from 'pg';
 import KekaService from './keka.service';
 
 // Using `any` for pool here to avoid type resolution issues with the project's TypeScript setup.
 export async function upsertEmployee(pool: any, emp: any) {
-  // Upsert logic for employees table
-  const { id: keka_id, email: workEmail, name: fullName } = emp;
+  // Upsert logic for employees table. Align with existing schema in migrations/001_create_employees.sql
+  // Use the canonical columns: keka_id, email, raw_keka_profile
+  const { id: keka_id, email } = emp;
   await pool.query(`
-    INSERT INTO employees (keka_id, workEmail, fullName, raw_keka_profile)
-    VALUES ($1, $2, $3, $4::jsonb)
+    INSERT INTO employees (keka_id, email, raw_keka_profile)
+    VALUES ($1, $2, $3::jsonb)
     ON CONFLICT (keka_id) DO UPDATE
-    SET workEmail = EXCLUDED.workEmail,
-        fullName = EXCLUDED.fullName,
+    SET email = EXCLUDED.email,
         raw_keka_profile = EXCLUDED.raw_keka_profile
-  `, [keka_id, workEmail, fullName, JSON.stringify(emp)]);
+  `, [keka_id, email, JSON.stringify(emp)]);
 }
 
 export async function runHrisSync(pool: any, kekaService: KekaService) {
@@ -33,7 +34,7 @@ export async function runHrisSync(pool: any, kekaService: KekaService) {
 }
 
 export function startHrisSyncWorker(pool: any, kekaService: KekaService) {
-  new Worker('hrisSyncQueue', async (job: Job) => {
+  new Worker('hris-sync', async (job: Job) => {
     await runHrisSync(pool, kekaService);
-  });
+  }, { connection });
 }

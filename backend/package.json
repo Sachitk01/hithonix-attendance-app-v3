@@ -1,0 +1,8 @@
+{
+  "name": "hithonix-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "worker": "npx -y tsx -r dotenv/config src/workers/index.ts"
+  }
+}
