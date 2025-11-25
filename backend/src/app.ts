@@ -1,6 +1,9 @@
 import { App, LogLevel } from '@slack/bolt';
 import { registerHandlers } from './services/slack/actions';
 import { getAppPool } from './db/pool';
+import { hrisSyncQueue } from './queues/hrisSync.queue';
+import { kekaHealthQueue } from './queues/kekaHealth.queue';
+import { kekaSyncQueue } from './queues/kekaSync.queue';
 
 // Initialize Bolt App using env vars. This module is the runtime entry for the Slack app.
 export function initSlackApp() {
@@ -36,7 +39,19 @@ if (require.main === module) {
 	(async () => {
 		const app = initSlackApp();
 		await app.start();
-		console.log('Slack app running');
+			console.log('Slack app running');
+
+			if (process.env.IS_PRIMARY_APP_INSTANCE === '1') {
+				try {
+					await hrisSyncQueue.add('hris-sync-recurring', {}, { repeat: { cron: '0 * * * *' } });
+					await kekaHealthQueue.add('health-monitor', {}, { repeat: { cron: '*/5 * * * *' } });
+					// Ensure attendance sync queue exists (no-op if already present)
+					await kekaSyncQueue.add('keka-sync-recurring', {}, { repeat: { cron: '*/15 * * * *' } }).catch(() => {});
+					console.log('Registered recurring queues (hrisSync, kekaHealth, kekaSync)');
+				} catch (err) {
+					console.error('Failed to register recurring jobs:', (err as Error).message || err);
+				}
+			}
 	})().catch(err => {
 		console.error('Failed to start Slack app', err);
 		process.exit(1);

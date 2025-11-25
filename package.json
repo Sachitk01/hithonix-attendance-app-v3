@@ -13,7 +13,7 @@
   "scripts": {
     "test": "node backend/tests/run_tests.js",
     "start:app": "node -r dotenv/config backend/src/app.ts",
-    "start:worker": "node -r dotenv/config backend/src/services/keka/kekaSync.worker.ts"
+  "start:worker": "node -r dotenv/config backend/src/workers/index.ts"
   },
   "keywords": [],
   "author": "",

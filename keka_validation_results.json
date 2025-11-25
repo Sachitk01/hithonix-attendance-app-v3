@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-11-25T05:13:09.485Z",
+  "tests": [
+    {
+      "name": "OAuth Token Exchange (kekaapi)",
+      "passed": true,
+      "timestamp": "2025-11-25T05:13:09.639Z",
+      "details": {
+        "status": 200,
+        "token_prefix": "eyJhbGciOiJSUzI1NiIs",
+        "expires_in": 86400
+      }
+    },
+    {
+      "name": "HRIS Employee Search",
+      "passed": true,
+      "timestamp": "2025-11-25T05:13:10.138Z",
+      "details": {
+        "status": 200,
+        "employees_in_response": 5,
+        "total_records": 22,
+        "total_pages": 5
+      }
+    },
+    {
+      "name": "Attendance Ingestion",
+      "passed": true,
+      "timestamp": "2025-11-25T05:13:10.433Z",
+      "details": {
+        "status": 200,
+        "logs_received": 1,
+        "logs_accepted": 1,
+        "response": {
+          "logsReceived": 1,
+          "logsAccepted": 1
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_tests": 3,
+    "passed": 3,
+    "failed": 0,
+    "success_rate": "100%"
+  }
+}

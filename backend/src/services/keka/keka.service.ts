@@ -46,7 +46,7 @@ export class KekaService {
   }
 
   // Obtain OAuth token from Keka using kekaapi grant (API key-based)
-  private async getAccessToken(): Promise<string> {
+  public async getAccessToken(): Promise<string> {
     const now = Date.now();
     if (this.tokenCache.token && this.tokenCache.expiresAt && this.tokenCache.expiresAt > now + 5000) {
       return this.tokenCache.token as string;
