@@ -40,8 +40,8 @@ const KEKA_SCOPE = process.env.KEKA_SCOPE || 'kekaapi';
 const KEKA_AUTH_URL =
   process.env.KEKA_AUTH_URL || 'https://login.keka.com/connect/token';
 
-// e.g. https://hithonix.keka.com
-const KEKA_EMPLOYEE_BASE_URL = `https://${KEKA_COMPANY_ALIAS}.${KEKA_ENV_DOMAIN}`;
+// e.g. https://hithonix.keka.com/api/v1/hris
+const KEKA_HRIS_BASE = `https://${KEKA_COMPANY_ALIAS}.${KEKA_ENV_DOMAIN}/api/v1/hris`;
 
 // ---------- DB pool ----------
 
@@ -55,11 +55,10 @@ async function getAccessToken() {
   console.log('[keka] Requesting access token...');
 
   const body = new URLSearchParams();
-  body.append('grant_type', 'kekaapi');
+  body.append('grant_type', 'client_credentials');
   body.append('scope', KEKA_SCOPE);
   body.append('client_id', KEKA_CLIENT_ID);
   body.append('client_secret', KEKA_CLIENT_SECRET);
-  body.append('api_key', KEKA_API_KEY);
 
   const res = await fetch(KEKA_AUTH_URL, {
     method: 'POST',
@@ -89,7 +88,7 @@ async function getAccessToken() {
 // ---------- Keka employees fetch (paged) ----------
 
 async function fetchEmployeesPage(accessToken, pageNumber) {
-  const url = new URL('/api/v1/hris/employees', KEKA_EMPLOYEE_BASE_URL);
+  const url = new URL('/employees', KEKA_HRIS_BASE);
 
   url.searchParams.set('inProbation', 'false');
   url.searchParams.set('inNoticePeriod', 'false');
