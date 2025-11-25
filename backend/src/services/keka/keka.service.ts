@@ -13,22 +13,26 @@ export class KekaService {
   constructor(pool: Pool, opts: { baseUrl?: string; apiKey: string; tenantAlias?: string; clientId?: string; clientSecret?: string; }) {
     this.pool = pool;
     this.http = axios.create({
-      // HRIS base (used for auth/token exchange only as an axios instance placeholder)
-      baseURL: opts.baseUrl ?? (process.env.KEKA_ENV_DOMAIN ? `https://${process.env.KEKA_COMPANY_ALIAS}.${process.env.KEKA_ENV_DOMAIN}` : 'https://keka.com'),
+      // HRIS base (tenant-specific). Use the computed KEKA_HRIS_BASE so relative HRIS paths are correct.
+      baseURL: opts.baseUrl ?? KekaService.KEKA_HRIS_BASE,
       timeout: 30_000,
       headers: {
         'Content-Type': 'application/json',
+        // For HRIS reads we may use the general KEKA_API_KEY, if provided
         'X-API-Key': opts.apiKey ?? process.env.KEKA_API_KEY
       }
     });
     // Separate axios instance for Keka attendance ingestion API
     // KEKA_ATTENDANCE_BASE_URL is expected to include the full path (https://cin03.a.keka.com/v1/logs)
     this.attendanceHttp = axios.create({
+      // attendance base should be a full URL to the ingestion endpoint (including /v1/logs).
+      // We'll post to the base (empty path) to avoid duplicating segments.
       baseURL: process.env.KEKA_ATTENDANCE_BASE_URL || 'https://cin03.a.keka.com/v1/logs',
       timeout: 30_000,
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': opts.apiKey ?? process.env.KEKA_ATTENDANCE_API_KEY
+        // Explicitly use the attendance API key env var for ingestion.
+        'X-API-Key': process.env.KEKA_ATTENDANCE_API_KEY
       }
     });
   }
@@ -68,12 +72,13 @@ export class KekaService {
     const expiresIn = data.expires_in || 3600;
     this.tokenCache.token = data.access_token;
     this.tokenCache.expiresAt = Date.now() + (expiresIn * 1000);
-    return this.tokenCache.token;
+    return this.tokenCache.token as string;
   }
 
   // Search employees by workEmail
   async searchByEmail(email: string) {
-    const url = `/hris/employees/search`;
+    // KEKA_HRIS_BASE already includes the /api/v1/hris segment; the employees search endpoint is /employees/search
+    const url = `/employees/search`;
     const payload = { search_by: 'workEmail', search_value: email };
     const res = await this.http.post(url, payload);
     return res.data as KekaSearchResult;
@@ -83,7 +88,8 @@ export class KekaService {
   // Expects payload: { deviceId, employeeAttendanceNumber, timestamp, status }
   // where status: 0 = IN, 1 = OUT, 2 = BREAK_START, 3 = BREAK_END (or your defined codes)
   async pushAttendance(payload: { deviceId: string; employeeAttendanceNumber: string; timestamp: string; status: number }) {
-    const url = `/v1/logs`;
+    // Post directly to the configured attendance base URL. The env variable is expected to include the full path
+    // (e.g. https://cin03.a.keka.com/v1/logs). To avoid double-path issues we post to '' (the base).
     // Keka ingestion API expects an array of log objects
     const body = [
       {
@@ -93,7 +99,7 @@ export class KekaService {
         Status: payload.status,
       },
     ];
-    const res = await this.attendanceHttp.post(url, body);
+    const res = await this.attendanceHttp.post('', body);
     return res.data;
   }
 

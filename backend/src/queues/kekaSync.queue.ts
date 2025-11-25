@@ -51,9 +51,17 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
         return;
       }
 
-      // Format timestamp as IST without offset: "YYYY-MM-DDTHH:MM:SS"
-      const isoTs = new Date(ev.event_timestamp_utc).toISOString(); // "2025-11-25T12:34:56.789Z"
-      const timestampIstNoOffset = isoTs.split('.')[0]; // "2025-11-25T12:34:56"
+      // Prefer the stored IST timestamp (event_timestamp_ist) and format as "YYYY-MM-DDTHH:MM:SS"
+      // event_timestamp_ist may come back as 'YYYY-MM-DD HH:MM:SS' (no timezone). Normalize to the expected Keka format.
+      const tsIstRaw = ev.event_timestamp_ist || ev.event_timestamp_utc;
+      let timestampIstNoOffset: string;
+      if (typeof tsIstRaw === 'string') {
+        // Normalize 'YYYY-MM-DD HH:MM:SS' -> 'YYYY-MM-DDTHH:MM:SS'
+        timestampIstNoOffset = tsIstRaw.replace(' ', 'T').slice(0, 19);
+      } else {
+        // Fallback: produce ISO and strip fractional seconds and offset (rare)
+        timestampIstNoOffset = new Date(tsIstRaw).toISOString().split('.')[0];
+      }
 
       const kekaPayload = {
         deviceId: process.env.KEKA_DEVICE_ID!,
@@ -61,15 +69,19 @@ export function startKekaSyncWorker(pool: Pool, kekaService: KekaService) {
         timestamp: timestampIstNoOffset,
         status: statusCode,
       };
+      console.info('kekaSync: pushing attendance for event', ev.id, 'employee', ev.employee_id, 'payload', kekaPayload);
       let kekaResp: any;
       try {
         kekaResp = await kekaService.pushAttendance(kekaPayload);
       } catch (err: any) {
+        console.error('kekaSync: pushAttendance failed for event', ev.id, 'err=', err && err.message ? err.message : String(err));
         await client.query(`UPDATE attendance_events SET sync_status = 'FAILED', keka_request_body = $2, keka_response_body = $3 WHERE id = $1`, [ev.id, kekaPayload, { error: err.message || String(err) }]);
         await client.query('COMMIT');
         // let the worker surface the failure (so retries can happen); the worker 'failed' handler will enqueue a home refresh
         throw err;
       }
+
+      console.info('kekaSync: pushAttendance succeeded for event', ev.id, 'response', kekaResp);
 
       await client.query(`UPDATE attendance_events SET sync_status = 'SUCCESS', keka_request_body = $2, keka_response_body = $3 WHERE id = $1`, [ev.id, kekaPayload, kekaResp]);
       await client.query('COMMIT');
