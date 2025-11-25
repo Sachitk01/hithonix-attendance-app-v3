@@ -25,7 +25,7 @@ const KEKA_API_KEY = process.env.KEKA_API_KEY;
 const KEKA_SCOPE = process.env.KEKA_SCOPE || 'kekaapi';
 const KEKA_COMPANY_ALIAS = process.env.KEKA_COMPANY_ALIAS || 'hithonix';
 const KEKA_ENV_DOMAIN = process.env.KEKA_ENV_DOMAIN || 'keka.com';
-const KEKA_HRIS_BASE = `https://${KEKA_COMPANY_ALIAS}.${KEKA_ENV_DOMAIN}/api/v1/hris`;
+const KEKA_HRIS_BASE = `https://${KEKA_COMPANY_ALIAS}.${KEKA_ENV_DOMAIN}/api/v1/hris/`;
 const KEKA_ATTENDANCE_BASE_URL = process.env.KEKA_ATTENDANCE_BASE_URL || 'https://cin03.a.keka.com/v1/logs';
 const KEKA_ATTENDANCE_API_KEY = process.env.KEKA_ATTENDANCE_API_KEY;
 const KEKA_DEVICE_ID = (process.env.KEKA_DEVICE_ID || '4f5b878d-7fe4-4b34-8eed-651b3d20c4c2').trim();
@@ -196,21 +196,19 @@ async function testAttendanceIngestion() {
                       String(now.getMinutes()).padStart(2, '0') + ':' +
                       String(now.getSeconds()).padStart(2, '0');
 
-    // Try with logEntries wrapper as per Keka API spec
-    const payload = {
-      logEntries: [
-        {
-          DeviceIdentifier: KEKA_DEVICE_ID,
-          EmployeeAttendanceNumber: 'U_TEST001',
-          Timestamp: timestamp,
-          Status: 0  // 0 = CLOCK_IN
-        }
-      ]
-    };
+    // Keka API expects logEntries to be an array (no wrapper object)
+    const payload = [
+      {
+        DeviceIdentifier: KEKA_DEVICE_ID,
+        EmployeeAttendanceNumber: 'U_TEST001',
+        Timestamp: timestamp,
+        Status: 0  // 0 = CLOCK_IN
+      }
+    ];
 
     log(`  POST ${KEKA_ATTENDANCE_BASE_URL}`, 'debug');
     log(`  X-API-Key: ${KEKA_ATTENDANCE_API_KEY.substring(0, 8)}...`, 'debug');
-    log(`  Payload: ${JSON.stringify(payload.logEntries[0], null, 2)}`.split('\n').map(l => '    ' + l).join('\n'), 'debug');
+    log(`  Payload: ${JSON.stringify(payload[0], null, 2)}`.split('\n').map(l => '    ' + l).join('\n'), 'debug');
 
     const res = await fetch(KEKA_ATTENDANCE_BASE_URL, {
       method: 'POST',

@@ -40,8 +40,8 @@ const KEKA_SCOPE = process.env.KEKA_SCOPE || 'kekaapi';
 const KEKA_AUTH_URL =
   process.env.KEKA_AUTH_URL || 'https://login.keka.com/connect/token';
 
-// e.g. https://hithonix.keka.com/api/v1/hris
-const KEKA_HRIS_BASE = `https://${KEKA_COMPANY_ALIAS}.${KEKA_ENV_DOMAIN}/api/v1/hris`;
+// e.g. https://hithonix.keka.com/api/v1/hris/
+const KEKA_HRIS_BASE = `https://${KEKA_COMPANY_ALIAS}.${KEKA_ENV_DOMAIN}/api/v1/hris/`;
 
 // ---------- DB pool ----------
 
