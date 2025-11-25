@@ -1,0 +1,10 @@
+{
+  "data": {
+    "logsReceived": 1,
+    "logsAccepted": 1
+  },
+  "succeeded": true,
+  "http_status": 200,
+  "schema_used": "SIMPLE ARRAY (not logEntries wrapper)",
+  "timestamp": "2025-11-25T10:26:54"
+}

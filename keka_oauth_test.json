@@ -1,0 +1,4 @@
+{
+  "error": "unauthorized_client",
+  "note": "OAuth client credentials (client_credentials grant) not configured in Keka for this tenant. Alternative: Use API key authentication for HRIS reads."
+}

@@ -1,0 +1,5 @@
+{
+  "status": "BLOCKED",
+  "reason": "OAuth token unavailable — unauthorized_client error prevents bearer token acquisition",
+  "note": "HRIS endpoint may support API key auth instead of OAuth. Alternative endpoint at /api/v1/hris requires investigation."
+}
